@@ -1,6 +1,5 @@
 <!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>暖阳3D产品建模室</title><link rel="stylesheet" href="theme.css">
-<script type="importmap">{"imports":{"three":"./assets/three.module.min.js"}}</script>
 <style>
   .studio-hero{display:grid;grid-template-columns:1fr 310px;min-height:190px;background:#fffdf7;border:2.5px solid #e7c580;border-radius:30px;overflow:hidden;box-shadow:var(--shadow);margin:10px 0 18px}.studio-copy{padding:27px 34px;display:flex;flex-direction:column;justify-content:center}.studio-copy h1{font-size:clamp(31px,4.6vw,50px);line-height:1.1;margin:10px 0 8px}.studio-copy p{color:#7b6655;line-height:1.7;margin:0}.studio-art{background:url('assets/modeling-pair.jpg') 26% 50%/cover no-repeat;position:relative}.studio-art:before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,#fffdf7,transparent 28%)}
   .preset-row{display:flex;gap:9px;flex-wrap:wrap;margin:0 0 15px}.preset-row b{align-self:center;margin-right:4px}.preset{border:1.5px solid #e4c38b;background:#fffaf0;color:#6e5746;border-radius:999px;padding:9px 14px;font-weight:800;cursor:pointer}.preset:hover{background:#fff0c7}
@@ -20,7 +19,7 @@
  </aside>
  <section class="viewport-card"><div class="viewport-top"><h2>三维模型预览</h2><span>拖动旋转 · 滚轮缩放</span></div><div class="viewport" id="viewport"><div class="loading" id="loading">正在打开三维设计室…</div><div class="model-label"><b id="labelName">暖心提醒药盒</b><small id="labelSize">160 × 105 × 58 mm</small></div><div class="tip">鼠标拖动模型，查看每一个方向</div></div><div class="actions"><button class="action" id="resetView">恢复观察角度</button><button class="action green" id="saveImage">保存模型图片</button><button class="action primary" id="saveModel">导出 STL 模型</button></div><p class="status" id="status">模型由圆润壳体、醒目大按钮、清晰显示屏和防滑底座组成。STL 文件可继续用于其他三维软件或3D打印。</p></section>
 </section></main>
-<script type="module">
+<script type="text/plain" id="modeler-source">
 import * as THREE from 'three';
 import { OrbitControls } from './assets/OrbitControls.js';
 import { STLExporter } from './assets/STLExporter.js';
@@ -28,7 +27,7 @@ import { STLExporter } from './assets/STLExporter.js';
 const $=id=>document.getElementById(id);const viewport=$('viewport');
 let renderer;
 try{renderer=new THREE.WebGLRenderer({antialias:true,alpha:true,preserveDrawingBuffer:true});}catch(e){$('loading').innerHTML='<div class="no-webgl">当前浏览器未开启三维显示，请换用最新版 Edge、Chrome 或 Safari。</div>';throw e}
-renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.08;viewport.insertBefore(renderer.domElement,viewport.firstChild);
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.08;viewport.insertBefore(renderer.domElement,viewport.firstChild);
 const scene=new THREE.Scene();const camera=new THREE.PerspectiveCamera(34,1,1,1800);camera.position.set(310,235,355);
 const controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.dampingFactor=.07;controls.minDistance=170;controls.maxDistance=760;controls.target.set(0,45,0);
 scene.add(new THREE.HemisphereLight(0xfff8e7,0x705d4b,2.25));const key=new THREE.DirectionalLight(0xffffff,3.1);key.position.set(180,280,220);key.castShadow=true;key.shadow.mapSize.set(1024,1024);scene.add(key);const fill=new THREE.DirectionalLight(0xffd5b0,1.6);fill.position.set(-180,110,-150);scene.add(fill);
@@ -54,4 +53,17 @@ function fitView(){const size=Math.max(state.width,state.depth,state.height+(sta
 $('resetView').onclick=fitView;function safeName(){return($('productName').value||'助老产品模型').replace(/[\\/:*?"<>|]/g,'_')}
 $('saveImage').onclick=()=>{renderer.render(scene,camera);renderer.domElement.toBlob(blob=>{const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=safeName()+'.png';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500)},'image/png')};$('saveModel').onclick=()=>{const data=new STLExporter().parse(modelRoot,{binary:true});const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([data],{type:'model/stl'}));a.download=safeName()+'.stl';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500)};
 new ResizeObserver(()=>{const w=viewport.clientWidth,h=viewport.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()}).observe(viewport);function animate(){requestAnimationFrame(animate);controls.update();renderer.render(scene,camera)}rebuild();fitView();$('loading').remove();animate();
-</script></body></html>
+</script>
+<script>
+(function(){
+  let started=false;
+  const showError=()=>{const box=document.getElementById('loading');if(box&&!started){box.innerHTML='<div class="no-webgl"><b>三维程序没有正常启动</b><br><small>请刷新页面，或使用最新版 Edge、Chrome、Safari 打开。</small><br><button class="preset" style="margin-top:14px" onclick="location.reload()">重新打开</button></div>'}};
+  window.addEventListener('error',showError);
+  window.addEventListener('unhandledrejection',showError);
+  const observer=new MutationObserver(()=>{if(!document.getElementById('loading')){started=true;observer.disconnect()}});
+  observer.observe(document.body,{childList:true,subtree:true});
+  setTimeout(showError,12000);
+})();
+</script>
+<script src="assets/modeler.bundle.js"></script>
+</body></html>
